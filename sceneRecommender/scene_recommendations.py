@@ -1,6 +1,7 @@
 import json
 import sys
 from stashapi.stashapp import StashInterface
+from stashapi import log
 from recommender import get_recommendations
 
 json_input = json.loads(sys.stdin.read())
@@ -12,6 +13,7 @@ if "scene_id" not in args or not args["scene_id"]:
 scene_id = args["scene_id"]
 stash = StashInterface(json_input["server_connection"])
 
+ignored_tags = []
 config = stash.get_configuration()["plugins"]
 if "sceneRecommender" in config:
     ignored_tags = config["sceneRecommender"].get("ignored_tags", "")
@@ -19,8 +21,9 @@ if "sceneRecommender" in config:
         ignored_tags = [
             int(x.strip()) for x in ignored_tags.split(",") if x.strip().isdigit()
         ]
-    else:
-        ignored_tags = []
 
-output = get_recommendations(stash, scene_id, ignored_tags)
-print(json.dumps({"output": output}))
+output = get_recommendations(stash, int(scene_id), ignored_tags, 25)
+results = json.dumps({"scene_id": scene_id, "output": output})
+log.exit(f"sceneRecommender={results}")
+
+# print(json.dumps({"results": results}))

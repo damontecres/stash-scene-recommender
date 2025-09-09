@@ -1,3 +1,4 @@
+import math
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
@@ -65,15 +66,13 @@ def get_recommendations(stash, scene_id, ignored_tags, num=25):
     scenes_df["director"] = (
         scenes_df["director"].fillna("").apply(lambda x: x.replace(" ", "_"))
     )
-    scenes_df = scenes_df.fillna("")
+    # scenes_df = scenes_df.fillna("")
     scenes_df["studio_id"] = scenes_df["studio_id"].apply(
-        lambda x: "studio_" + str(int(x)) if x else ""
+        lambda x: "studio_" + str(int(x)) if not math.isnan(x) else ""
     )
     # scenes = scenes[scenes["title"] != '']
     # scenes_df = scenes_df[scenes_df["tag_id"] != '']
     # scenes_df = scenes_df[scenes_df["performer_id"] != '']
-    scenes_df = scenes_df.reset_index()
-
     scenes_df["content"] = (
         scenes_df["director"].astype(str)
         + " "
@@ -83,13 +82,15 @@ def get_recommendations(stash, scene_id, ignored_tags, num=25):
         + " "
         + scenes_df["performer_id"]
     )
+    scenes_df.dropna(subset=["content"], inplace=True)
+    scenes_df = scenes_df.reset_index()
 
     vectorizer = TfidfVectorizer(max_df=0.66)
     tfidf = vectorizer.fit_transform(scenes_df["content"])
-    lsa = TruncatedSVD(n_components=100, algorithm="arpack")
+    n_components = min(100, tfidf.shape[1] - 1)
+    lsa = TruncatedSVD(n_components=n_components, algorithm="arpack")
     lsa.fit(tfidf)
 
-    # scene_id = 1844
     index = scenes_df[scenes_df["scene_id"] == scene_id].index[0]
 
     similarity_scores = cosine_similarity(tfidf[index], tfidf)
@@ -102,7 +103,8 @@ def get_recommendations(stash, scene_id, ignored_tags, num=25):
     for i, score in sorted_similar_scenes:
         title = scenes_df.loc[i, "title"]
         scene_id = scenes_df.loc[i, "scene_id"]
-        results.append(
-            {"scene_id": int(scene_id), "title": title, "score": float(score)}
-        )
+        if score > 0:
+            results.append(
+                {"scene_id": int(scene_id), "title": title, "score": float(score)}
+            )
     return results
