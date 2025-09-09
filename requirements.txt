@@ -1,0 +1,4 @@
+stashapp-tools
+scikit-learn
+pandas
+flask

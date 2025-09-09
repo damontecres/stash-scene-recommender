@@ -1,0 +1,19 @@
+name: Stash Scene Recommender
+description: A plugin to make recommendations based on your scenes
+version: 0.0.1
+url: https://github.com/damontecres/stash-scene-recommender
+
+settings:
+  ignored_tags:
+    displayName: Tag IDs to ignore
+    type: STRING
+
+exec:
+  - python
+  - "{pluginDir}/scene_recommendations.py"
+interface: raw
+tasks:
+  - name: recommendations
+    description: Get scene recommendations for a given scene
+    defaultArgs:
+      scene_id: ""
